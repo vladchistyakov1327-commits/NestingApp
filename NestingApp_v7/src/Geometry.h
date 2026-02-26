@@ -1,8 +1,13 @@
 #pragma once
-#include <vector>
+#define _USE_MATH_DEFINES
 #include <cmath>
+#include <vector>
 #include <algorithm>
 #include <limits>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 static constexpr double GEO_EPS = 1e-9;
 
@@ -140,23 +145,10 @@ public:
     // ═══════════════════════════════════════════════════════════════════════════
     // NFP (No-Fit Polygon) — ОРБИТАЛЬНЫЙ МЕТОД
     // ═══════════════════════════════════════════════════════════════════════════
-    //
-    // Возвращает список контуров NFP (может быть несколько для невыпуклых деталей).
-    // Первый контур — внешний (определяет допустимую область).
-    //
-    // Алгоритм:
-    //  1. Строим список «edge vectors» fixed (CCW) и reflected moving (CW→CCW)
-    //  2. Находим стартовую точку: крайняя нижняя вершина fixed + крайняя нижняя moving
-    //  3. Сортируем рёбра по углу, обходим орбиту
-    //  4. Собираем траекторию опорной точки moving
-    //
-    // Для невыпуклых полигонов используется упрощение через выпуклые оболочки
-    // с последующей коррекцией через точное пересечение контуров.
     static std::vector<Polygon> computeNFP(const Polygon& fixed,
                                             const Polygon& moving);
 
     // ─── Inner Fit Rectangle ─────────────────────────────────────────────────
-    // Допустимая область для опорной точки детали внутри прямоугольника листа.
     static Rect innerFitRect(const Rect& sheet, const Polygon& part);
 };
 
