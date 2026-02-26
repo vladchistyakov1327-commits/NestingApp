@@ -48,15 +48,15 @@ jobs:
       - name: Download VC Redistributable
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path "NestingApp_v7\installer\redist" | Out-Null
-          Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "NestingApp_v7\installer\redist\vc_redist.x64.exe" -UseBasicParsing
+          New-Item -ItemType Directory -Force -Path "redist" | Out-Null
+          Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "redist\vc_redist.x64.exe" -UseBasicParsing
 
       - name: Build Installer
         shell: pwsh
         run: |
           $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           $deployDir = (Resolve-Path "build\Release").Path
-          $redistDir = (Resolve-Path "NestingApp_v7\installer\redist").Path
+          $redistDir = (Resolve-Path "redist").Path
           New-Item -ItemType Directory -Force -Path "dist" | Out-Null
           $outDir = (Resolve-Path "dist").Path
           & $iscc "/DAppDir=$deployDir" "/DOutputDir=$outDir" "/DRedistDir=$redistDir" "NestingApp_v7\installer\NestingApp_ci.iss"
