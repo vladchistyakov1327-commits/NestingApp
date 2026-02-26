@@ -25,20 +25,17 @@ static std::string toUpper(std::string s) {
     return s;
 }
 
-// ✅ MSVC-safe sscanf_s + stod fallback
+// ✅ ИСПРАВЛЕНО: std::strtod вместо sscanf_s (работает ВЕЗДЕ!)
 static double toD(const std::string& s) {
     try {
         size_t pos;
-        return std::stod(s, &pos);
-    } catch (...) {
-#ifdef _MSC_VER
-        double v = 0;
-        std::sscanf_s(s.c_str(), "%lf", &v);
-#else
-        double v = 0;
-        std::sscanf(s.c_str(), "%lf", &v);
-#endif
+        double v = std::stod(s, &pos);
         return v;
+    } catch (...) {
+        // Fallback: ручной парсинг через strtod (безопасно + кросс-платформенно)
+        char* end;
+        double v = std::strtod(s.c_str(), &end);
+        return (v != 0 || end != s.c_str()) ? v : 0.0;
     }
 }
 
