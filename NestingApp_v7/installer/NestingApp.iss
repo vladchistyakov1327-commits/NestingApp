@@ -13,7 +13,7 @@ AppPublisher={#AppPublisher}
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 AllowNoIcons=yes
-OutputDir=dist
+OutputDir=..\dist
 OutputBaseFilename=NestingApp_v2_Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
@@ -22,10 +22,6 @@ ArchitecturesAllowed=x64
 PrivilegesRequired=admin
 UninstallDisplayIcon={app}\{#AppExeName}
 WizardStyle=modern
-; Закомментируем иконки, если их нет
-; SetupIconFile=..\resources\icon.ico
-; WizardImageFile=..\resources\wizard_banner.bmp
-; WizardSmallImageFile=..\resources\wizard_small.bmp
 
 [Languages]
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
@@ -38,7 +34,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; Основной исполняемый файл
 Source: "{#AppDir}\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
-; Qt библиотеки (windeployqt уже скопировал их)
+; Qt библиотеки
 Source: "{#AppDir}\Qt6Core.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "{#AppDir}\Qt6Gui.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 Source: "{#AppDir}\Qt6Widgets.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
@@ -50,11 +46,8 @@ Source: "{#AppDir}\platforms\*"; DestDir: "{app}\platforms"; Flags: ignoreversio
 Source: "{#AppDir}\styles\*"; DestDir: "{app}\styles"; Flags: ignoreversion recursesubdirs skipifsourcedoesntexist
 Source: "{#AppDir}\imageformats\*"; DestDir: "{app}\imageformats"; Flags: ignoreversion recursesubdirs skipifsourcedoesntexist
 
-; Visual C++ Redistributable (передаётся через параметр)
+; Visual C++ Redistributable
 Source: "{#RedistDir}\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall skipifsourcedoesntexist
-
-; README и примеры (если есть)
-Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
@@ -67,8 +60,3 @@ Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; S
 
 ; Запуск программы после установки
 Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
-
-[Registry]
-; Ассоциация файлов .dxf
-Root: HKCU; Subkey: "Software\Classes\.dxf\OpenWithProgIds"; ValueType: string; ValueName: "NestingApp.dxf"; ValueData: ""; Flags: uninsdeletevalue
-Root: HKCU; Subkey: "Software\Classes\NestingApp.dxf\shell\open\command"; ValueType: string; ValueData: """{app}\{#AppExeName}"" ""%1"""; Flags: uninsdeletevalue
