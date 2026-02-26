@@ -1,14 +1,9 @@
-; ============================================================
-;  NestingApp — Inno Setup installer script
-;  Сборка: iscc NestingApp.iss
-;  Требования: Inno Setup 6.x (https://jrsoftware.org/isinfo.php)
-; ============================================================
+; Inno Setup script for NestingApp
 
-#define AppName      "NestingApp"
-#define AppVersion   "2.0"
+#define AppName "NestingApp"
+#define AppVersion "2.0"
 #define AppPublisher "MetalShop"
-#define AppExeName   "NestingApp.exe"
-#define AppDir       "..\build_release"
+#define AppExeName "NestingApp.exe"
 
 [Setup]
 AppId={{A7F3C2D1-4E5B-4F6A-8C9D-0E1F2A3B4C5D}
@@ -18,91 +13,62 @@ AppPublisher={#AppPublisher}
 DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 AllowNoIcons=yes
-OutputDir=..\dist
+OutputDir=dist
 OutputBaseFilename=NestingApp_v2_Setup
 Compression=lzma2/ultra64
 SolidCompression=yes
-ArchitecturesInstallIn64BitMode=x64os
-ArchitecturesAllowed=x64os
+ArchitecturesInstallIn64BitMode=x64
+ArchitecturesAllowed=x64
 PrivilegesRequired=admin
 UninstallDisplayIcon={app}\{#AppExeName}
 WizardStyle=modern
-SetupIconFile=..\assets\icon.ico
-; Если нет иконки — закомментируй строку выше
+; Закомментируем иконки, если их нет
+; SetupIconFile=..\resources\icon.ico
+; WizardImageFile=..\resources\wizard_banner.bmp
+; WizardSmallImageFile=..\resources\wizard_small.bmp
 
 [Languages]
-Name: "russian";    MessagesFile: "compiler:Languages\Russian.isl"
-Name: "english";    MessagesFile: "compiler:Default.isl"
+Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
+Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon";   Description: "{cm:CreateDesktopIcon}";   GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
-Name: "quicklaunch";   Description: "Ярлык в панели задач";     GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked; OnlyBelowVersion: 6.1
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-; ── Основной исполняемый файл ──────────────────────────────
-Source: "{#AppDir}\{#AppExeName}";     DestDir: "{app}";            Flags: ignoreversion
+; Основной исполняемый файл
+Source: "{#AppDir}\{#AppExeName}"; DestDir: "{app}"; Flags: ignoreversion
 
-; ── Qt6 DLL (windeployqt копирует их в build_release) ──────
-Source: "{#AppDir}\Qt6Core.dll";       DestDir: "{app}";            Flags: ignoreversion skipifsourcedoesntexist
-Source: "{#AppDir}\Qt6Gui.dll";        DestDir: "{app}";            Flags: ignoreversion skipifsourcedoesntexist
-Source: "{#AppDir}\Qt6Widgets.dll";    DestDir: "{app}";            Flags: ignoreversion skipifsourcedoesntexist
-Source: "{#AppDir}\Qt6Svg.dll";        DestDir: "{app}";            Flags: ignoreversion skipifsourcedoesntexist
-Source: "{#AppDir}\Qt6OpenGL.dll";     DestDir: "{app}";            Flags: ignoreversion skipifsourcedoesntexist
+; Qt библиотеки (windeployqt уже скопировал их)
+Source: "{#AppDir}\Qt6Core.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#AppDir}\Qt6Gui.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#AppDir}\Qt6Widgets.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#AppDir}\Qt6Svg.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
+Source: "{#AppDir}\Qt6OpenGL.dll"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
-; ── Плагины Qt ─────────────────────────────────────────────
-Source: "{#AppDir}\platforms\*";       DestDir: "{app}\platforms";  Flags: ignoreversion recursesubdirs skipifsourcedoesntexist
-Source: "{#AppDir}\styles\*";          DestDir: "{app}\styles";     Flags: ignoreversion recursesubdirs skipifsourcedoesntexist
-Source: "{#AppDir}\imageformats\*";    DestDir: "{app}\imageformats";Flags: ignoreversion recursesubdirs skipifsourcedoesntexist
+; Qt плагины
+Source: "{#AppDir}\platforms\*"; DestDir: "{app}\platforms"; Flags: ignoreversion recursesubdirs skipifsourcedoesntexist
+Source: "{#AppDir}\styles\*"; DestDir: "{app}\styles"; Flags: ignoreversion recursesubdirs skipifsourcedoesntexist
+Source: "{#AppDir}\imageformats\*"; DestDir: "{app}\imageformats"; Flags: ignoreversion recursesubdirs skipifsourcedoesntexist
 
-; ── Visual C++ Runtime ─────────────────────────────────────
-Source: "redist\vc_redist.x64.exe";    DestDir: "{tmp}";            Flags: deleteafterinstall skipifsourcedoesntexist
+; Visual C++ Redistributable (передаётся через параметр)
+Source: "{#RedistDir}\vc_redist.x64.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall skipifsourcedoesntexist
 
-; ── Примеры DXF файлов ─────────────────────────────────────
-Source: "..\examples\*";               DestDir: "{app}\examples";   Flags: ignoreversion recursesubdirs skipifsourcedoesntexist
-
-; ── README ─────────────────────────────────────────────────
-Source: "..\src\README.md";            DestDir: "{app}";            Flags: ignoreversion
+; README и примеры (если есть)
+Source: "..\README.md"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 
 [Icons]
-Name: "{group}\{#AppName}";                   Filename: "{app}\{#AppExeName}"
-Name: "{group}\Удалить {#AppName}";           Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#AppName}";             Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
+Name: "{group}\{#AppName}"; Filename: "{app}\{#AppExeName}"
+Name: "{group}\{cm:UninstallProgram,{#AppName}}"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\{#AppName}"; Filename: "{app}\{#AppExeName}"; Tasks: desktopicon
 
 [Run]
-; Установка Visual C++ Runtime (тихо, без перезагрузки)
-Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/quiet /norestart"; \
-    StatusMsg: "Установка Visual C++ Runtime..."; \
-    Flags: waituntilterminated skipifdoesntexist
+; Установка Visual C++ Redistributable
+Filename: "{tmp}\vc_redist.x64.exe"; Parameters: "/install /quiet /norestart"; StatusMsg: "Установка Visual C++ Redistributable..."; Flags: waituntilterminated skipifdoesntexist
 
 ; Запуск программы после установки
-Filename: "{app}\{#AppExeName}"; \
-    Description: "Запустить NestingApp"; \
-    Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#AppName}}"; Flags: nowait postinstall skipifsilent
 
 [Registry]
-; Ассоциация файлов .nest с программой
-Root: HKA; Subkey: "Software\Classes\.nest"; ValueType: string; ValueData: "NestingApp.Project"; Flags: uninsdeletevalue
-Root: HKA; Subkey: "Software\Classes\NestingApp.Project"; ValueType: string; ValueData: "Проект NestingApp"; Flags: uninsdeletekey
-Root: HKA; Subkey: "Software\Classes\NestingApp.Project\Shell\Open\Command"; ValueType: string; ValueData: """{app}\{#AppExeName}"" ""%1"""; Flags: uninsdeletevalue
-
-[UninstallDelete]
-Type: filesandordirs; Name: "{app}"
-
-[Code]
-// Проверка наличия Visual C++ Redist перед установкой
-function VCRedistInstalled(): Boolean;
-var
-  Version: String;
-begin
-  Result := RegQueryStringValue(HKLM,
-    'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64',
-    'Version', Version);
-end;
-
-procedure CurStepChanged(CurStep: TSetupStep);
-begin
-  if CurStep = ssInstall then begin
-    if not VCRedistInstalled() then
-      MsgBox('Visual C++ Runtime будет установлен автоматически.', mbInformation, MB_OK);
-  end;
-end;
+; Ассоциация файлов .dxf
+Root: HKCU; Subkey: "Software\Classes\.dxf\OpenWithProgIds"; ValueType: string; ValueName: "NestingApp.dxf"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Classes\NestingApp.dxf\shell\open\command"; ValueType: string; ValueData: """{app}\{#AppExeName}"" ""%1"""; Flags: uninsdeletevalue
