@@ -3,8 +3,6 @@ name: Build NestingApp for Windows
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
@@ -33,35 +31,10 @@ jobs:
         shell: pwsh
         run: |
           $exe = "build\Release\NestingApp.exe"
-          
-          # Находим путь к Qt
-          $qtPath = ""
-          if (Test-Path env:Qt6_DIR) {
-            $qtPath = "$env:Qt6_DIR"
-            Write-Host "Qt6_DIR: $qtPath"
-          }
-          elseif (Test-Path env:IQTA_QT_DIR) {
-            $qtPath = "$env:IQTA_QT_DIR\msvc2019_64"
-            Write-Host "IQTA_QT_DIR: $qtPath"
-          }
-          
-          # Ищем windeployqt
-          $windeployqt = Get-ChildItem -Path $qtPath -Recurse -Filter "windeployqt.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
-          
-          if ($windeployqt) {
-            Write-Host "Found windeployqt: $($windeployqt.FullName)"
-            & $windeployqt.FullName --release --no-compiler-runtime --no-translations $exe
-          } else {
-            Write-Host "Searching in PATH..."
-            $windeployqt = Get-Command windeployqt.exe -ErrorAction SilentlyContinue
-            if ($windeployqt) {
-              & windeployqt --release --no-compiler-runtime --no-translations $exe
-            } else {
-              Write-Host "WARNING: windeployqt not found, skipping deployment"
-            }
-          }
-          
-          Get-ChildItem build\Release\ | Select-Object Name
+          $qtPath = "$env:Qt6_DIR"
+          $windeployqt = "$qtPath\..\..\..\bin\windeployqt.exe"
+          Write-Host "Using windeployqt: $windeployqt"
+          & $windeployqt --release --no-compiler-runtime --no-translations $exe
 
       - name: Download VC Redistributable
         shell: pwsh
@@ -76,39 +49,25 @@ jobs:
           $deployDir = (Resolve-Path "build\Release").Path
           $redistDir = (Resolve-Path "redist").Path
           
-          Write-Host "Deploy Dir: $deployDir" -ForegroundColor Green
-          Write-Host "Redist Dir: $redistDir" -ForegroundColor Green
+          Write-Host "Deploy Dir: $deployDir"
+          Write-Host "Redist Dir: $redistDir"
           
-          # Создаем папку dist в корне
-          New-Item -ItemType Directory -Force -Path "dist" | Out-Null
-          $outDir = (Resolve-Path "dist").Path
-          Write-Host "Output Dir: $outDir" -ForegroundColor Green
+          # Запускаем компилятор (файл создастся в NestingApp_v7\installer\dist\)
+          & $iscc "/DAppDir=$deployDir" "/DRedistDir=$redistDir" "NestingApp_v7\installer\NestingApp.iss"
           
-          # Запускаем компилятор
-          Write-Host "Running ISCC..." -ForegroundColor Yellow
-          & $iscc "/DAppDir=$deployDir" "/DOutputDir=$outDir" "/DRedistDir=$redistDir" "NestingApp_v7\installer\NestingApp.iss"
-          
-          # Ищем созданный файл
-          Write-Host "Searching for setup file..." -ForegroundColor Yellow
-          $setupFile = Get-ChildItem -Path . -Recurse -Filter "NestingApp_v2_Setup.exe" | Select-Object -First 1
-          
-          if ($setupFile) {
-            Write-Host "✅ Setup file found at: $($setupFile.FullName)" -ForegroundColor Green
-            # Копируем в корневую dist папку если нужно
-            if ($setupFile.Directory.Name -ne "dist") {
-              Copy-Item $setupFile.FullName -Destination "dist\" -Force
-              Write-Host "✅ Copied to dist folder" -ForegroundColor Green
-            }
-          } else {
-            Write-Host "❌ Setup file not found!" -ForegroundColor Red
-            exit 1
+          # Проверяем где создался файл
+          Write-Host "Looking for setup file..." -ForegroundColor Yellow
+          Get-ChildItem -Path NestingApp_v7\installer -Recurse -Filter "*.exe" | ForEach-Object {
+            Write-Host "Found: $($_.FullName)" -ForegroundColor Green
+            # Копируем в корень для upload
+            Copy-Item $_.FullName -Destination "NestingApp_v2_Setup.exe" -Force
           }
 
       - name: Upload Installer
         uses: actions/upload-artifact@v4
         with:
           name: NestingApp_Setup
-          path: dist/NestingApp_v2_Setup.exe
+          path: NestingApp_v2_Setup.exe
           if-no-files-found: error
           retention-days: 30
 
