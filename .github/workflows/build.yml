@@ -33,16 +33,34 @@ jobs:
         shell: pwsh
         run: |
           $exe = "build\Release\NestingApp.exe"
-          $qtBin = ""
-          if ($env:Qt6_DIR) {
-            $qtBin = "$env:Qt6_DIR\..\..\..\bin"
+          
+          # Находим путь к Qt
+          $qtPath = ""
+          if (Test-Path env:Qt6_DIR) {
+            $qtPath = "$env:Qt6_DIR"
+            Write-Host "Qt6_DIR: $qtPath"
           }
-          if ($env:IQTA_QT_DIR) {
-            $qtBin = "$env:IQTA_QT_DIR\msvc2019_64\bin"
+          elseif (Test-Path env:IQTA_QT_DIR) {
+            $qtPath = "$env:IQTA_QT_DIR\msvc2019_64"
+            Write-Host "IQTA_QT_DIR: $qtPath"
           }
-          $wdq = "$qtBin\windeployqt.exe"
-          Write-Host "windeployqt: $wdq"
-          & $wdq --release --no-compiler-runtime --no-translations $exe
+          
+          # Ищем windeployqt
+          $windeployqt = Get-ChildItem -Path $qtPath -Recurse -Filter "windeployqt.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          
+          if ($windeployqt) {
+            Write-Host "Found windeployqt: $($windeployqt.FullName)"
+            & $windeployqt.FullName --release --no-compiler-runtime --no-translations $exe
+          } else {
+            Write-Host "Searching in PATH..."
+            $windeployqt = Get-Command windeployqt.exe -ErrorAction SilentlyContinue
+            if ($windeployqt) {
+              & windeployqt --release --no-compiler-runtime --no-translations $exe
+            } else {
+              Write-Host "WARNING: windeployqt not found, skipping deployment"
+            }
+          }
+          
           Get-ChildItem build\Release\ | Select-Object Name
 
       - name: Download VC Redistributable
@@ -59,7 +77,7 @@ jobs:
           $redistDir = (Resolve-Path "redist").Path
           New-Item -ItemType Directory -Force -Path "dist" | Out-Null
           $outDir = (Resolve-Path "dist").Path
-          & $iscc "/DAppDir=$deployDir" "/DOutputDir=$outDir" "/DRedistDir=$redistDir" "NestingApp_v7\installer\NestingApp_ci.iss"
+          & $iscc "/DAppDir=$deployDir" "/DOutputDir=$outDir" "/DRedistDir=$redistDir" "NestingApp_v7\installer\NestingApp.iss"
           Get-ChildItem dist\
 
       - name: Upload Installer
