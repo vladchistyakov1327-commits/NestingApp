@@ -1,0 +1,108 @@
+name: Build NestingApp
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Windows Build and Installer
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Qt 6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.0'
+          arch: 'win64_msvc2019_64'
+          cache: true
+
+      - name: Configure CMake
+        run: cmake -B build -S NestingApp_v7 -G "Visual Studio 17 2022" -A x64 -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Release
+        run: cmake --build build --config Release --parallel
+
+      - name: Deploy Qt DLLs
+        shell: pwsh
+        run: |
+          $exe = "build\Release\NestingApp.exe"
+          $qtBin = ""
+          if ($env:Qt6_DIR) {
+            $qtBin = "$env:Qt6_DIR\..\..\..\bin"
+          }
+          if ($env:IQTA_QT_DIR) {
+            $qtBin = "$env:IQTA_QT_DIR\msvc2019_64\bin"
+          }
+          $wdq = "$qtBin\windeployqt.exe"
+          Write-Host "windeployqt: $wdq"
+          & $wdq --release --no-compiler-runtime --no-translations $exe
+          Get-ChildItem build\Release\ | Select-Object Name
+
+      - name: Download VC Redistributable
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "NestingApp_v7\installer\redist" | Out-Null
+          Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "NestingApp_v7\installer\redist\vc_redist.x64.exe" -UseBasicParsing
+
+      - name: Build Installer
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          $deployDir = (Resolve-Path "build\Release").Path
+          $redistDir = (Resolve-Path "NestingApp_v7\installer\redist").Path
+          New-Item -ItemType Directory -Force -Path "dist" | Out-Null
+          $outDir = (Resolve-Path "dist").Path
+          & $iscc "/DAppDir=$deployDir" "/DOutputDir=$outDir" "/DRedistDir=$redistDir" "NestingApp_v7\installer\NestingApp_ci.iss"
+          Get-ChildItem dist\
+
+      - name: Upload Installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: NestingApp_Setup
+          path: dist/NestingApp_v2_Setup.exe
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload Portable
+        uses: actions/upload-artifact@v4
+        with:
+          name: NestingApp_Portable
+          path: build/Release/
+          retention-days: 14
+
+  build-linux:
+    name: Linux Smoke Build
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake ninja-build \
+            qt6-base-dev libgl1-mesa-dev \
+            libxcb-icccm4-dev libxcb-image0-dev \
+            libxcb-keysyms1-dev libxcb-randr0-dev \
+            libxcb-render-util0-dev libxcb-xkb-dev \
+            libxkbcommon-x11-dev libgomp1
+
+      - name: Build
+        run: |
+          cmake -B build -S NestingApp_v7 -DCMAKE_BUILD_TYPE=Release -G Ninja
+          cmake --build build --parallel
+
+      - name: Upload Linux binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: NestingApp_Linux
+          path: build/NestingApp
+          retention-days: 14
