@@ -1,3 +1,6 @@
+#define _SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING
+#define _CRT_SECURE_NO_WARNINGS
+
 #include "MainWindow.h"
 #include <QApplication>
 #include <QHBoxLayout>
@@ -11,6 +14,7 @@
 #include <QHeaderView>
 #include <QGraphicsScene>
 #include <QGraphicsView>
+#include <QGraphicsPolygonItem>
 #include <QProgressBar>
 #include <QFileDialog>
 #include <QMessageBox>
@@ -30,6 +34,8 @@
 #include <cmath>
 #include <sstream>
 #include <iomanip>
+#include <thread>
+#include <atomic>
 
 // ─── NestingWorker ────────────────────────────────────────────────────────────
 NestingWorker::NestingWorker(std::vector<std::unique_ptr<Part>> parts,
