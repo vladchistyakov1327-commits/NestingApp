@@ -31,10 +31,38 @@ jobs:
         shell: pwsh
         run: |
           $exe = "build\Release\NestingApp.exe"
-          $qtPath = "$env:Qt6_DIR"
-          $windeployqt = "$qtPath\..\..\..\bin\windeployqt.exe"
-          Write-Host "Using windeployqt: $windeployqt"
-          & $windeployqt --release --no-compiler-runtime --no-translations $exe
+          
+          # Находим путь к Qt
+          $qtDir = $env:Qt6_DIR
+          Write-Host "Qt6_DIR: $qtDir" -ForegroundColor Green
+          
+          # Правильный путь к windeployqt
+          $windeployqt = Join-Path $qtDir "..\..\..\bin\windeployqt.exe"
+          $windeployqt = (Resolve-Path $windeployqt -ErrorAction SilentlyContinue).Path
+          
+          if ($windeployqt) {
+            Write-Host "Found windeployqt: $windeployqt" -ForegroundColor Green
+            & $windeployqt --release --no-compiler-runtime --no-translations $exe
+          } else {
+            # Альтернативный поиск
+            $possiblePaths = @(
+              "C:\Qt\6.7.0\msvc2019_64\bin\windeployqt.exe",
+              "C:\Qt\6.7.0\msvc2022_64\bin\windeployqt.exe",
+              "D:\a\NestingApp\Qt\6.7.0\msvc2019_64\bin\windeployqt.exe"
+            )
+            
+            foreach ($path in $possiblePaths) {
+              if (Test-Path $path) {
+                Write-Host "Found windeployqt at: $path" -ForegroundColor Green
+                & $path --release --no-compiler-runtime --no-translations $exe
+                break
+              }
+            }
+          }
+          
+          # Проверяем результат
+          Write-Host "Qt DLLs deployed to build\Release" -ForegroundColor Green
+          Get-ChildItem build\Release\*.dll | Select-Object Name
 
       - name: Download VC Redistributable
         shell: pwsh
@@ -49,18 +77,25 @@ jobs:
           $deployDir = (Resolve-Path "build\Release").Path
           $redistDir = (Resolve-Path "redist").Path
           
-          Write-Host "Deploy Dir: $deployDir"
-          Write-Host "Redist Dir: $redistDir"
+          Write-Host "Deploy Dir: $deployDir" -ForegroundColor Green
+          Write-Host "Redist Dir: $redistDir" -ForegroundColor Green
           
-          # Запускаем компилятор (файл создастся в NestingApp_v7\installer\dist\)
+          # Запускаем компилятор
+          Write-Host "Running ISCC..." -ForegroundColor Yellow
           & $iscc "/DAppDir=$deployDir" "/DRedistDir=$redistDir" "NestingApp_v7\installer\NestingApp.iss"
           
-          # Проверяем где создался файл
-          Write-Host "Looking for setup file..." -ForegroundColor Yellow
-          Get-ChildItem -Path NestingApp_v7\installer -Recurse -Filter "*.exe" | ForEach-Object {
-            Write-Host "Found: $($_.FullName)" -ForegroundColor Green
-            # Копируем в корень для upload
-            Copy-Item $_.FullName -Destination "NestingApp_v2_Setup.exe" -Force
+          # Ищем созданный файл
+          Write-Host "Searching for setup file..." -ForegroundColor Yellow
+          $setupFile = Get-ChildItem -Path . -Recurse -Filter "NestingApp_v2_Setup.exe" | Select-Object -First 1
+          
+          if ($setupFile) {
+            Write-Host "✅ Setup file found at: $($setupFile.FullName)" -ForegroundColor Green
+            # Копируем в корень
+            Copy-Item $setupFile.FullName -Destination "NestingApp_v2_Setup.exe" -Force
+            Write-Host "✅ Copied to root folder" -ForegroundColor Green
+          } else {
+            Write-Host "❌ Setup file not found!" -ForegroundColor Red
+            exit 1
           }
 
       - name: Upload Installer
