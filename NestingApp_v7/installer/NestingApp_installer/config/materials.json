@@ -1,0 +1,94 @@
+{
+  "materials": [
+    {
+      "id": "steel_1mm",
+      "name": "Сталь 1 мм",
+      "type": "Steel",
+      "thickness": 1.0,
+      "density": 7.85,
+      "cutting_speed_mm_per_min": 6000,
+      "kerf_width": 0.2,
+      "color": "#888888"
+    },
+    {
+      "id": "steel_2mm",
+      "name": "Сталь 2 мм",
+      "type": "Steel",
+      "thickness": 2.0,
+      "density": 7.85,
+      "cutting_speed_mm_per_min": 4500,
+      "kerf_width": 0.3,
+      "color": "#888888"
+    },
+    {
+      "id": "steel_3mm",
+      "name": "Сталь 3 мм",
+      "type": "Steel",
+      "thickness": 3.0,
+      "density": 7.85,
+      "cutting_speed_mm_per_min": 3000,
+      "kerf_width": 0.4,
+      "color": "#888888"
+    },
+    {
+      "id": "steel_5mm",
+      "name": "Сталь 5 мм",
+      "type": "Steel",
+      "thickness": 5.0,
+      "density": 7.85,
+      "cutting_speed_mm_per_min": 1800,
+      "kerf_width": 0.5,
+      "color": "#888888"
+    },
+    {
+      "id": "steel_8mm",
+      "name": "Сталь 8 мм",
+      "type": "Steel",
+      "thickness": 8.0,
+      "density": 7.85,
+      "cutting_speed_mm_per_min": 1200,
+      "kerf_width": 0.6,
+      "color": "#888888"
+    },
+    {
+      "id": "stainless_2mm",
+      "name": "Нержавейка 2 мм",
+      "type": "StainlessSteel",
+      "thickness": 2.0,
+      "density": 7.93,
+      "cutting_speed_mm_per_min": 3000,
+      "kerf_width": 0.3,
+      "color": "#CCCCCC"
+    },
+    {
+      "id": "aluminum_2mm",
+      "name": "Алюминий 2 мм",
+      "type": "Aluminum",
+      "thickness": 2.0,
+      "density": 2.70,
+      "cutting_speed_mm_per_min": 5000,
+      "kerf_width": 0.3,
+      "color": "#D4D4D4"
+    },
+    {
+      "id": "aluminum_4mm",
+      "name": "Алюминий 4 мм",
+      "type": "Aluminum",
+      "thickness": 4.0,
+      "density": 2.70,
+      "cutting_speed_mm_per_min": 3000,
+      "kerf_width": 0.4,
+      "color": "#D4D4D4"
+    },
+    {
+      "id": "copper_2mm",
+      "name": "Медь 2 мм",
+      "type": "Copper",
+      "thickness": 2.0,
+      "density": 8.96,
+      "cutting_speed_mm_per_min": 2500,
+      "kerf_width": 0.3,
+      "color": "#B87333"
+    }
+  ]
+}
