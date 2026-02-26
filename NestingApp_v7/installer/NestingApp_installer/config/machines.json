@@ -1,0 +1,59 @@
+{
+  "machines": [
+    {
+      "id": "laser_4kw",
+      "name": "Лазерный станок 4 кВт",
+      "type": "Laser",
+      "max_sheet_width": 3000,
+      "max_sheet_height": 1500,
+      "min_margin": 10,
+      "default_gap": 2,
+      "positioning_speed": 30000,
+      "supported_materials": ["Steel", "StainlessSteel", "Aluminum", "Copper"]
+    },
+    {
+      "id": "laser_2kw",
+      "name": "Лазерный станок 2 кВт",
+      "type": "Laser",
+      "max_sheet_width": 2500,
+      "max_sheet_height": 1250,
+      "min_margin": 15,
+      "default_gap": 2,
+      "positioning_speed": 25000,
+      "supported_materials": ["Steel", "Aluminum"]
+    },
+    {
+      "id": "plasma_cnc",
+      "name": "Плазменный станок ЧПУ",
+      "type": "Plasma",
+      "max_sheet_width": 6000,
+      "max_sheet_height": 3000,
+      "min_margin": 20,
+      "default_gap": 5,
+      "positioning_speed": 10000,
+      "supported_materials": ["Steel", "StainlessSteel"]
+    },
+    {
+      "id": "waterjet",
+      "name": "Гидроабразивная резка",
+      "type": "Waterjet",
+      "max_sheet_width": 4000,
+      "max_sheet_height": 2000,
+      "min_margin": 10,
+      "default_gap": 3,
+      "positioning_speed": 5000,
+      "supported_materials": ["Steel", "StainlessSteel", "Aluminum", "Copper", "Titanium"]
+    },
+    {
+      "id": "router_cnc",
+      "name": "Фрезерный станок",
+      "type": "Router",
+      "max_sheet_width": 2440,
+      "max_sheet_height": 1220,
+      "min_margin": 10,
+      "default_gap": 5,
+      "positioning_speed": 15000,
+      "supported_materials": ["Aluminum", "Plastic", "Wood"]
+    }
+  ]
+}
