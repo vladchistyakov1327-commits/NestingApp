@@ -1,4 +1,4 @@
-name: Build NestingApp
+name: Build NestingApp for Windows
 
 on:
   push:
@@ -75,10 +75,34 @@ jobs:
           $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           $deployDir = (Resolve-Path "build\Release").Path
           $redistDir = (Resolve-Path "redist").Path
+          
+          Write-Host "Deploy Dir: $deployDir" -ForegroundColor Green
+          Write-Host "Redist Dir: $redistDir" -ForegroundColor Green
+          
+          # Создаем папку dist в корне
           New-Item -ItemType Directory -Force -Path "dist" | Out-Null
           $outDir = (Resolve-Path "dist").Path
+          Write-Host "Output Dir: $outDir" -ForegroundColor Green
+          
+          # Запускаем компилятор
+          Write-Host "Running ISCC..." -ForegroundColor Yellow
           & $iscc "/DAppDir=$deployDir" "/DOutputDir=$outDir" "/DRedistDir=$redistDir" "NestingApp_v7\installer\NestingApp.iss"
-          Get-ChildItem dist\
+          
+          # Ищем созданный файл
+          Write-Host "Searching for setup file..." -ForegroundColor Yellow
+          $setupFile = Get-ChildItem -Path . -Recurse -Filter "NestingApp_v2_Setup.exe" | Select-Object -First 1
+          
+          if ($setupFile) {
+            Write-Host "✅ Setup file found at: $($setupFile.FullName)" -ForegroundColor Green
+            # Копируем в корневую dist папку если нужно
+            if ($setupFile.Directory.Name -ne "dist") {
+              Copy-Item $setupFile.FullName -Destination "dist\" -Force
+              Write-Host "✅ Copied to dist folder" -ForegroundColor Green
+            }
+          } else {
+            Write-Host "❌ Setup file not found!" -ForegroundColor Red
+            exit 1
+          }
 
       - name: Upload Installer
         uses: actions/upload-artifact@v4
@@ -93,34 +117,4 @@ jobs:
         with:
           name: NestingApp_Portable
           path: build/Release/
-          retention-days: 14
-
-  build-linux:
-    name: Linux Smoke Build
-    runs-on: ubuntu-22.04
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y cmake ninja-build \
-            qt6-base-dev libgl1-mesa-dev \
-            libxcb-icccm4-dev libxcb-image0-dev \
-            libxcb-keysyms1-dev libxcb-randr0-dev \
-            libxcb-render-util0-dev libxcb-xkb-dev \
-            libxkbcommon-x11-dev libgomp1
-
-      - name: Build
-        run: |
-          cmake -B build -S NestingApp_v7 -DCMAKE_BUILD_TYPE=Release -G Ninja
-          cmake --build build --parallel
-
-      - name: Upload Linux binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: NestingApp_Linux
-          path: build/NestingApp
           retention-days: 14
