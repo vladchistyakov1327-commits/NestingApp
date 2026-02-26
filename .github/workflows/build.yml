@@ -32,37 +32,43 @@ jobs:
         run: |
           $exe = "build\Release\NestingApp.exe"
           
-          # Находим путь к Qt
-          $qtDir = $env:Qt6_DIR
-          Write-Host "Qt6_DIR: $qtDir" -ForegroundColor Green
+          # Прямой поиск windeployqt
+          Write-Host "Searching for windeployqt..." -ForegroundColor Yellow
           
-          # Правильный путь к windeployqt
-          $windeployqt = Join-Path $qtDir "..\..\..\bin\windeployqt.exe"
-          $windeployqt = (Resolve-Path $windeployqt -ErrorAction SilentlyContinue).Path
+          $possiblePaths = @(
+            "D:\a\NestingApp\Qt\6.7.0\msvc2019_64\bin\windeployqt.exe",
+            "C:\Qt\6.7.0\msvc2019_64\bin\windeployqt.exe",
+            "D:\a\NestingApp\Qt\Tools\QtCreator\bin\windeployqt.exe"
+          )
           
-          if ($windeployqt) {
-            Write-Host "Found windeployqt: $windeployqt" -ForegroundColor Green
-            & $windeployqt --release --no-compiler-runtime --no-translations $exe
-          } else {
-            # Альтернативный поиск
-            $possiblePaths = @(
-              "C:\Qt\6.7.0\msvc2019_64\bin\windeployqt.exe",
-              "C:\Qt\6.7.0\msvc2022_64\bin\windeployqt.exe",
-              "D:\a\NestingApp\Qt\6.7.0\msvc2019_64\bin\windeployqt.exe"
-            )
-            
-            foreach ($path in $possiblePaths) {
-              if (Test-Path $path) {
-                Write-Host "Found windeployqt at: $path" -ForegroundColor Green
-                & $path --release --no-compiler-runtime --no-translations $exe
-                break
-              }
+          $found = $false
+          foreach ($path in $possiblePaths) {
+            if (Test-Path $path) {
+              Write-Host "✅ Found windeployqt at: $path" -ForegroundColor Green
+              & $path --release --no-compiler-runtime --no-translations $exe
+              $found = $true
+              break
             }
           }
           
+          if (-not $found) {
+            # Поиск по всему диску
+            Write-Host "Searching all drives..." -ForegroundColor Yellow
+            $windeployqt = Get-ChildItem -Path D:\ -Recurse -Filter "windeployqt.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($windeployqt) {
+              Write-Host "✅ Found windeployqt at: $($windeployqt.FullName)" -ForegroundColor Green
+              & $windeployqt.FullName --release --no-compiler-runtime --no-translations $exe
+              $found = $true
+            }
+          }
+          
+          if (-not $found) {
+            Write-Host "❌ windeployqt not found, but build continues" -ForegroundColor Yellow
+          }
+          
           # Проверяем результат
-          Write-Host "Qt DLLs deployed to build\Release" -ForegroundColor Green
-          Get-ChildItem build\Release\*.dll | Select-Object Name
+          Write-Host "Files in build\Release:" -ForegroundColor Green
+          Get-ChildItem build\Release\
 
       - name: Download VC Redistributable
         shell: pwsh
