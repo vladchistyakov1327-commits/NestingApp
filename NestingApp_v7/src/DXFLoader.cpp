@@ -11,7 +11,6 @@
 #include <string>
 
 static constexpr double PI = 3.141592653589793;
-// ✅ Убрал дублирующий GEO_EPS - используем из Geometry.h
 
 // ─── Строковые утилиты ────────────────────────────────────────────────────────
 static std::string trim(std::string s) {
@@ -26,13 +25,19 @@ static std::string toUpper(std::string s) {
     return s;
 }
 
+// ✅ MSVC-safe sscanf_s + stod fallback
 static double toD(const std::string& s) {
     try {
         size_t pos;
         return std::stod(s, &pos);
     } catch (...) {
+#ifdef _MSC_VER
+        double v = 0;
+        std::sscanf_s(s.c_str(), "%lf", &v);
+#else
         double v = 0;
         std::sscanf(s.c_str(), "%lf", &v);
+#endif
         return v;
     }
 }
@@ -125,7 +130,7 @@ std::vector<DXFLoader::Entity> DXFLoader::parseEntities(std::istream& in) {
         // Пропускаем если не в секции ENTITIES
         if (!inEntities || current.type.empty()) continue;
         
-        // ✅ Общие группы для всех сущностей
+        // ✅ Общие группы
         if (group == 8)  current.layer = val;
         if (group == 62) current.color = toI(val);
         if (group == 70) {
@@ -133,7 +138,7 @@ std::vector<DXFLoader::Entity> DXFLoader::parseEntities(std::istream& in) {
             current.closed = (flags & 1) != 0;
         }
         
-        // ✅ ЛИНЕЙКИ (LINE)
+        // ✅ ЛИНЕЙКИ
         if (current.type == "LINE") {
             if (group == 10) {
                 current.pts = {{toD(val), 0}};
@@ -145,7 +150,7 @@ std::vector<DXFLoader::Entity> DXFLoader::parseEntities(std::istream& in) {
                 current.pts[1].y = toD(val);
             }
         }
-        // ✅ LWPOLYLINE (самые частые!)
+        // ✅ LWPOLYLINE
         else if (current.type == "LWPOLYLINE") {
             if (group == 10) {
                 current.pts.emplace_back(toD(val), 0);
@@ -156,7 +161,6 @@ std::vector<DXFLoader::Entity> DXFLoader::parseEntities(std::istream& in) {
         // ✅ POLYLINE + VERTEX
         else if (current.type == "POLYLINE") {
             if (val == "VERTEX") {
-                // Новая вершина в текущем POLYLINE
                 if (!current.pts.empty()) {
                     current.pts.emplace_back(0, 0);
                 }
@@ -168,7 +172,7 @@ std::vector<DXFLoader::Entity> DXFLoader::parseEntities(std::istream& in) {
                 }
             }
         }
-        // ✅ ДУГИ И ОКРУЖНОСТИ
+        // ✅ ДУГИ
         else if (current.type == "ARC") {
             if (group == 10) {
                 current.pts = {{toD(val), 0}};
@@ -185,7 +189,7 @@ std::vector<DXFLoader::Entity> DXFLoader::parseEntities(std::istream& in) {
                 current.pts[0].y = toD(val);
             } else if (group == 40) current.radius = toD(val);
         }
-        // ✅ СПЛАЙНЫ (примитивная аппроксимация)
+        // ✅ СПЛАЙНЫ
         else if (current.type == "SPLINE") {
             if (group == 10) {
                 current.pts.emplace_back(toD(val), 0);
@@ -205,7 +209,7 @@ std::vector<DXFLoader::Entity> DXFLoader::parseEntities(std::istream& in) {
     return result;
 }
 
-// ─── chainSegments (улучшенная O(n) версия) ───────────────────────────────────
+// ─── chainSegments (O(n) spatial hash) ────────────────────────────────────────
 std::vector<Polygon> DXFLoader::chainSegments(std::vector<Segment> segs, double tol) {
     std::vector<Polygon> result;
     if (segs.empty()) return result;
@@ -224,10 +228,10 @@ std::vector<Polygon> DXFLoader::chainSegments(std::vector<Segment> segs, double 
     std::unordered_map<Key, std::vector<std::pair<int, bool>>, KeyHash> endMap;
     std::vector<bool> used(segs.size(), false);
 
-    // Строим карту концов
+    // Карта концов
     for (int i = 0; i < (int)segs.size(); ++i) {
-        endMap[roundKey(segs[i].first)].emplace_back(i, true);  // true = начало
-        endMap[roundKey(segs[i].second)].emplace_back(i, false); // false = конец
+        endMap[roundKey(segs[i].first)].emplace_back(i, true);   // начало
+        endMap[roundKey(segs[i].second)].emplace_back(i, false);  // конец
     }
 
     auto findNext = [&](const Point& tail) -> std::pair<int, bool> {
@@ -241,7 +245,6 @@ std::vector<Polygon> DXFLoader::chainSegments(std::vector<Segment> segs, double 
 
     auto markUsed = [&](int i) {
         used[i] = true;
-        // Удаляем из обоих концов
         for (int pass = 0; pass < 2; ++pass) {
             const Point& pt = pass == 0 ? segs[i].first : segs[i].second;
             auto it = endMap.find(roundKey(pt));
@@ -254,7 +257,7 @@ std::vector<Polygon> DXFLoader::chainSegments(std::vector<Segment> segs, double 
         }
     };
 
-    // Собираем все цепочки
+    // Собираем цепочки
     for (int start = 0; start < (int)segs.size(); ++start) {
         if (used[start]) continue;
 
@@ -291,7 +294,7 @@ std::vector<Polygon> DXFLoader::chainSegments(std::vector<Segment> segs, double 
     return result;
 }
 
-// ─── buildContours ───────────────────────────────────────────────────────────
+// ─── ✅ buildContours (БЕЗ userData!) ──────────────────────────────────────────
 std::vector<Polygon> DXFLoader::buildContours(const std::vector<Entity>& ents, bool cutLayer) {
     std::vector<Polygon> result;
     std::vector<Segment> segments;
@@ -302,21 +305,17 @@ std::vector<Polygon> DXFLoader::buildContours(const std::vector<Entity>& ents, b
         bool isCut = isCutLayer(e.layer, e.color);
         bool isMark = isMarkLayer(e.layer, e.color);
 
-        // Фильтр по типу (cutLayer=true → только CUT, false → только MARK)
-        if (cutLayer) {
-            if (!isCut && !e.layer.empty()) continue;
-        } else {
-            if (!isMark && !e.layer.empty()) continue;
-        }
+        if (cutLayer ? (!isCut && !e.layer.empty()) : (!isMark && !e.layer.empty())) 
+            continue;
 
-        // ✅ ЗАМКНУТЫЕ POLYLINE → сразу Polygon
+        // ✅ ЗАМКНУТЫЕ POLYLINE → Polygon
         if ((e.type == "LWPOLYLINE" || e.type == "POLYLINE") && e.closed && e.pts.size() >= 3) {
             Polygon poly(e.pts);
             poly.removeDuplicates();
             if (poly.area() > 1.0) result.push_back(std::move(poly));
             ++polyCount;
         }
-        // ✅ ОТКРЫТЫЕ POLYLINE → сегменты для chainSegments
+        // ✅ ОТКРЫТЫЕ POLYLINE → сегменты
         else if ((e.type == "LWPOLYLINE" || e.type == "POLYLINE") && e.pts.size() >= 2) {
             for (size_t i = 0; i + 1 < e.pts.size(); ++i) {
                 segments.emplace_back(e.pts[i], e.pts[i + 1]);
@@ -347,7 +346,7 @@ std::vector<Polygon> DXFLoader::buildContours(const std::vector<Entity>& ents, b
             }
             ++arcCount;
         }
-        // ✅ СПЛАЙНЫ (линейная аппроксимация)
+        // ✅ СПЛАЙНЫ
         else if (e.type == "SPLINE" && e.pts.size() >= 2) {
             for (size_t i = 0; i + 1 < e.pts.size(); ++i) {
                 segments.emplace_back(e.pts[i], e.pts[i + 1]);
@@ -355,24 +354,15 @@ std::vector<Polygon> DXFLoader::buildContours(const std::vector<Entity>& ents, b
         }
     }
 
-    // Замыкаем открытые контуры
+    // Замыкаем контуры
     auto chained = chainSegments(std::move(segments), 0.1);
     result.insert(result.end(), std::make_move_iterator(chained.begin()),
                   std::make_move_iterator(chained.end()));
 
-    // ✅ Статистика (локальная)
-    if (lineCount || polyCount || circleCount || arcCount) {
-        char buf[256];
-        std::snprintf(buf, sizeof(buf), 
-            "Примитивов: LINE=%d, POLY=%d, CIRCLE=%d, ARC=%d", 
-            lineCount, polyCount, circleCount, arcCount);
-        result[0].userData = buf; // Первая полигон получает статистику
-    }
-
     return result;
 }
 
-// ─── ✅ ОСНОВНАЯ ФУНКЦИЯ ЗАГРУЗКИ ──────────────────────────────────────────────
+// ─── ✅ loadFile (статистика в warnings) ──────────────────────────────────────
 DXFLoader::LoadResult DXFLoader::loadFile(const std::string& filename) {
     LoadResult res;
     
@@ -382,7 +372,6 @@ DXFLoader::LoadResult DXFLoader::loadFile(const std::string& filename) {
         return res;
     }
 
-    // ✅ Парсим ВСЕ сущности
     auto entities = parseEntities(f);
     
     if (entities.empty()) {
@@ -390,15 +379,16 @@ DXFLoader::LoadResult DXFLoader::loadFile(const std::string& filename) {
         return res;
     }
 
-    // ✅ Строим контуры CUT и MARK
+    // Строим контуры
     res.cutContours = buildContours(entities, true);
     res.markContours = buildContours(entities, false);
 
-    // ✅ Fallback: если нет CUT - берём всё
+    // Fallback: если нет CUT - берём все замкнутые
     if (res.cutContours.empty()) {
         res.warnings.push_back("Слой CUT не найден. Используются все контуры.");
         for (const auto& e : entities) {
-            if ((e.type == "LWPOLYLINE" || e.type == "POLYLINE") && e.closed && e.pts.size() >= 3) {
+            if ((e.type == "LWPOLYLINE" || e.type == "POLYLINE") && 
+                e.closed && e.pts.size() >= 3) {
                 Polygon poly(e.pts);
                 poly.removeDuplicates();
                 if (poly.area() > 1.0) res.cutContours.push_back(std::move(poly));
@@ -406,7 +396,7 @@ DXFLoader::LoadResult DXFLoader::loadFile(const std::string& filename) {
         }
     }
 
-    // ✅ Нормализация и очистка
+    // Очистка
     auto cleanPolys = [&](std::vector<Polygon>& polys) {
         for (auto& poly : polys) {
             poly.makeCCW();
@@ -425,10 +415,7 @@ DXFLoader::LoadResult DXFLoader::loadFile(const std::string& filename) {
     cleanPolys(res.markContours);
 
     res.success = !res.cutContours.empty();
-
-    if (!entities.empty()) {
-        res.warnings.push_back("Загружено сущностей: " + std::to_string(entities.size()));
-    }
-
+    res.warnings.push_back("Загружено сущностей: " + std::to_string(entities.size()));
+    
     return res;
 }
