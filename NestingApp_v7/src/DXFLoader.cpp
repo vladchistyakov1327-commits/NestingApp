@@ -11,7 +11,7 @@
 #include <string>
 
 static constexpr double PI = 3.141592653589793;
-static constexpr double GEO_EPS = 1e-6;
+// ✅ Убрал дублирующий GEO_EPS - используем из Geometry.h
 
 // ─── Строковые утилиты ────────────────────────────────────────────────────────
 static std::string trim(std::string s) {
@@ -296,6 +296,8 @@ std::vector<Polygon> DXFLoader::buildContours(const std::vector<Entity>& ents, b
     std::vector<Polygon> result;
     std::vector<Segment> segments;
 
+    int lineCount = 0, polyCount = 0, circleCount = 0, arcCount = 0;
+
     for (const auto& e : ents) {
         bool isCut = isCutLayer(e.layer, e.color);
         bool isMark = isMarkLayer(e.layer, e.color);
@@ -312,16 +314,19 @@ std::vector<Polygon> DXFLoader::buildContours(const std::vector<Entity>& ents, b
             Polygon poly(e.pts);
             poly.removeDuplicates();
             if (poly.area() > 1.0) result.push_back(std::move(poly));
+            ++polyCount;
         }
         // ✅ ОТКРЫТЫЕ POLYLINE → сегменты для chainSegments
         else if ((e.type == "LWPOLYLINE" || e.type == "POLYLINE") && e.pts.size() >= 2) {
             for (size_t i = 0; i + 1 < e.pts.size(); ++i) {
                 segments.emplace_back(e.pts[i], e.pts[i + 1]);
             }
+            ++polyCount;
         }
         // ✅ ЛИНИИ
         else if (e.type == "LINE" && e.pts.size() == 2) {
             segments.emplace_back(e.pts[0], e.pts[1]);
+            ++lineCount;
         }
         // ✅ ОКРУЖНОСТИ
         else if (e.type == "CIRCLE" && e.radius > 0) {
@@ -331,6 +336,7 @@ std::vector<Polygon> DXFLoader::buildContours(const std::vector<Entity>& ents, b
             Polygon poly(pts);
             poly.removeDuplicates();
             if (poly.area() > 1.0) result.push_back(std::move(poly));
+            ++circleCount;
         }
         // ✅ ДУГИ
         else if (e.type == "ARC" && e.radius > 0) {
@@ -339,6 +345,7 @@ std::vector<Polygon> DXFLoader::buildContours(const std::vector<Entity>& ents, b
             for (size_t i = 0; i + 1 < pts.size(); ++i) {
                 segments.emplace_back(pts[i], pts[i + 1]);
             }
+            ++arcCount;
         }
         // ✅ СПЛАЙНЫ (линейная аппроксимация)
         else if (e.type == "SPLINE" && e.pts.size() >= 2) {
@@ -352,6 +359,15 @@ std::vector<Polygon> DXFLoader::buildContours(const std::vector<Entity>& ents, b
     auto chained = chainSegments(std::move(segments), 0.1);
     result.insert(result.end(), std::make_move_iterator(chained.begin()),
                   std::make_move_iterator(chained.end()));
+
+    // ✅ Статистика (локальная)
+    if (lineCount || polyCount || circleCount || arcCount) {
+        char buf[256];
+        std::snprintf(buf, sizeof(buf), 
+            "Примитивов: LINE=%d, POLY=%d, CIRCLE=%d, ARC=%d", 
+            lineCount, polyCount, circleCount, arcCount);
+        result[0].userData = buf; // Первая полигон получает статистику
+    }
 
     return result;
 }
@@ -373,9 +389,6 @@ DXFLoader::LoadResult DXFLoader::loadFile(const std::string& filename) {
         res.warnings.push_back("DXF не содержит примитивов (LINE/LWPOLYLINE/ARC/CIRCLE)");
         return res;
     }
-
-    res.stats.entities = entities.size();
-    res.stats.lines = 0, res.stats.polylines = 0, res.stats.circles = 0, res.stats.arcs = 0;
 
     // ✅ Строим контуры CUT и MARK
     res.cutContours = buildContours(entities, true);
@@ -411,16 +424,10 @@ DXFLoader::LoadResult DXFLoader::loadFile(const std::string& filename) {
     cleanPolys(res.cutContours);
     cleanPolys(res.markContours);
 
-    // ✅ Статистика
-    res.stats.cutCount = res.cutContours.size();
-    res.stats.markCount = res.markContours.size();
     res.success = !res.cutContours.empty();
 
-    if (res.stats.entities > 0) {
-        res.warnings.push_back("Обработано сущностей: " + 
-            std::to_string(res.stats.entities) + 
-            ". CUT: " + std::to_string(res.stats.cutCount) + 
-            ", MARK: " + std::to_string(res.stats.markCount));
+    if (!entities.empty()) {
+        res.warnings.push_back("Загружено сущностей: " + std::to_string(entities.size()));
     }
 
     return res;
