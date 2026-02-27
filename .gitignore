@@ -1,0 +1,42 @@
+# Build directories
+build/
+cmake_build_debug/
+cmake_build_release/
+.build/
+
+# Qt/CMake
+*.moc
+*.ui.h
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+
+# IDEs
+.vscode/
+.idea/
+*.pro.user
+*.user
+*.creator
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Dependencies
+3rdparty/
+lib/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Executables
+ProductionManager
+ProductionManager.exe
+*.dll
+*.so
+*.dylib
