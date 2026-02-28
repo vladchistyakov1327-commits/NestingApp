@@ -3,6 +3,7 @@
 #include <QVBoxLayout>
 #include <QHeaderView>
 #include <QMessageBox>
+#include <QAbstractItemView>
 #include <QDebug>
 
 MovementForm::MovementForm(QWidget *parent)

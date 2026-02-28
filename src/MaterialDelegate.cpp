@@ -1,5 +1,6 @@
 #include "MaterialDelegate.h"
 #include <QAbstractItemModel>
+#include <QStyleOptionViewItem>
 #include <QColor>
 #include <QBrush>
 
