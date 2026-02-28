@@ -78,6 +78,6 @@ void EmployeesForm::saveEmployees() {
     if (m_model->submitAll()) {
         QMessageBox::information(this, "Успех", "Сотрудники сохранены");
     } else {
-        QMessageBox::critical(this, "Ошибка", "Не удалось сохранить: " + m_model->lastError().text());
+        QMessageBox::critical(this, "Ошибка", QString("Не удалось сохранить: ") + m_model->lastError().text());
     }
 }

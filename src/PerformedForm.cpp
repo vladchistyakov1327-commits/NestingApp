@@ -77,6 +77,6 @@ void PerformedForm::saveOperations() {
     if (m_model->submitAll()) {
         QMessageBox::information(this, "Успех", "Операции сохранены");
     } else {
-        QMessageBox::critical(this, "Ошибка", "Не удалось сохранить: " + m_model->lastError().text());
+        QMessageBox::critical(this, "Ошибка", QString("Не удалось сохранить: ") + m_model->lastError().text());
     }
 }
